@@ -6,6 +6,8 @@
 [![No Dependencies](https://img.shields.io/badge/dependencies-none-brightgreen.svg)]()
 [![Client Side](https://img.shields.io/badge/runs-client--side-blue.svg)]()
 
+![](assets/og.png)
+
 🌐 **Live:** [rules-json.msaied.com](https://rules-json.msaied.com) &nbsp;·&nbsp; 📦 **GitHub:** [EG-Mohamed/RulesJson](https://github.com/EG-Mohamed/RulesJson)
 
 ---

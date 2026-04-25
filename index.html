@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>RulesJson — Laravel Validation to JSON Generator</title>
+    <meta name="description" content="Convert Laravel validation rules to JSON body instantly. Free & open-source."/>
+    <meta name="author" content="Mohamed Said"/>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
+                    },
+                    colors: {
+                        laravel: {
+                            50:  '#fff1f0',
+                            100: '#ffe0de',
+                            200: '#ffc7c3',
+                            300: '#ff9d97',
+                            400: '#ff6961',
+                            500: '#FF2D20',
+                            600: '#ed1a0d',
+                            700: '#c8120a',
+                            800: '#a5130d',
+                            900: '#88160f',
+                        },
+                        surface: {
+                            900: '#0D0D0D',
+                            800: '#141414',
+                            700: '#1A1A1A',
+                            600: '#222222',
+                            500: '#2A2A2A',
+                            400: '#333333',
+                            300: '#444444',
+                        }
+                    },
+                }
+            }
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; }
+
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 99px; }
+        ::-webkit-scrollbar-thumb:hover { background: #FF2D20; }
+        ::selection { background: rgba(255,45,32,.25); color: #fff; }
+
+        .syntax-key     { color: #e879f9; }
+        .syntax-string  { color: #86efac; }
+        .syntax-number  { color: #67e8f9; }
+        .syntax-bool    { color: #fda4af; }
+        .syntax-null    { color: #64748b; font-style: italic; }
+        .syntax-brace   { color: #fbbf24; }
+        .syntax-bracket { color: #fb923c; }
+
+        .panel {
+            background: #141414;
+            border: 1px solid rgba(255,255,255,.06);
+            border-radius: 12px;
+        }
+
+        .panel-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid rgba(255,255,255,.05);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+
+        textarea {
+            resize: none;
+            background: transparent;
+            outline: none;
+            width: 100%;
+            height: 100%;
+            padding: 16px 18px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            line-height: 1.75;
+            color: #d1d5db;
+            caret-color: #FF2D20;
+            display: block;
+        }
+        textarea::placeholder { color: #3f3f46; }
+
+        #output-pre {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            line-height: 1.75;
+            padding: 16px 18px;
+            overflow: auto;
+            width: 100%;
+            height: 100%;
+            color: #d1d5db;
+            white-space: pre;
+            word-break: normal;
+        }
+
+        .tag-pill {
+            font-size: 11px;
+            font-weight: 500;
+            padding: 2px 8px;
+            border-radius: 99px;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .btn-ghost {
+            font-size: 12px;
+            font-weight: 500;
+            padding: 5px 11px;
+            border-radius: 7px;
+            border: 1px solid rgba(255,255,255,.07);
+            background: rgba(255,255,255,.03);
+            color: #9ca3af;
+            cursor: pointer;
+            transition: all .15s;
+            font-family: 'Inter', sans-serif;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            white-space: nowrap;
+        }
+        .btn-ghost:hover { background: rgba(255,255,255,.08); color: #e5e7eb; border-color: rgba(255,255,255,.12); }
+        .btn-ghost:active { transform: scale(.97); }
+
+        .btn-primary {
+            font-size: 13px;
+            font-weight: 600;
+            padding: 9px 20px;
+            border-radius: 8px;
+            background: #FF2D20;
+            color: #fff;
+            cursor: pointer;
+            transition: all .15s;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            font-family: 'Inter', sans-serif;
+            border: none;
+            white-space: nowrap;
+        }
+        .btn-primary:hover { background: #e8271b; transform: translateY(-1px); box-shadow: 0 4px 18px rgba(255,45,32,.35); }
+        .btn-primary:active { transform: translateY(0); box-shadow: none; }
+
+        .tab-btn {
+            font-size: 12px;
+            font-weight: 500;
+            padding: 5px 13px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all .15s;
+            color: #6b7280;
+            font-family: 'Inter', sans-serif;
+            border: none;
+            background: transparent;
+            white-space: nowrap;
+        }
+        .tab-btn.active { background: rgba(255,45,32,.12); color: #FF2D20; }
+        .tab-btn:hover:not(.active) { color: #9ca3af; background: rgba(255,255,255,.04); }
+
+        .stat-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11.5px;
+            padding: 5px 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,.06);
+            background: rgba(255,255,255,.025);
+            font-family: 'Inter', sans-serif;
+        }
+
+        .logo-mark {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: #FF2D20;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 12px rgba(255,45,32,.45);
+            flex-shrink: 0;
+        }
+
+        .copy-success {
+            color: #4ade80 !important;
+            border-color: rgba(74,222,128,.3) !important;
+            background: rgba(74,222,128,.06) !important;
+        }
+
+        #error-alert {
+            display: none;
+            background: rgba(239,68,68,.07);
+            border: 1px solid rgba(239,68,68,.2);
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 12.5px;
+            color: #fca5a5;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .kbd {
+            font-size: 10px;
+            background: rgba(255,255,255,.06);
+            border: 1px solid rgba(255,255,255,.1);
+            border-radius: 4px;
+            padding: 1px 5px;
+            font-family: 'JetBrains Mono', monospace;
+            color: #6b7280;
+        }
+
+        #toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: #1c1c1c;
+            border: 1px solid rgba(255,255,255,.1);
+            border-radius: 10px;
+            padding: 11px 16px;
+            font-size: 13px;
+            font-family: 'Inter', sans-serif;
+            color: #e5e7eb;
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            box-shadow: 0 8px 40px rgba(0,0,0,.6);
+            z-index: 100;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity .2s ease, transform .2s ease;
+            pointer-events: none;
+        }
+        #toast.show { opacity: 1; transform: translateY(0); }
+
+        .status-dot {
+            width: 7px; height: 7px;
+            border-radius: 50%;
+            background: #3f3f46;
+            transition: background .3s, box-shadow .3s;
+            flex-shrink: 0;
+        }
+        .status-dot.ok  { background: #4ade80; box-shadow: 0 0 6px rgba(74,222,128,.5); }
+        .status-dot.err { background: #f87171; box-shadow: 0 0 6px rgba(248,113,113,.5); }
+
+        .traffic-light span { display: block; width: 12px; height: 12px; border-radius: 50%; }
+
+        @keyframes fadeSlideUp {
+            from { opacity: 0; transform: translateY(6px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .anim-in { animation: fadeSlideUp .2s ease forwards; }
+    </style>
+</head>
+<body class="bg-[#0D0D0D] text-slate-200 font-sans min-h-screen flex flex-col antialiased">
+
+<div id="toast">
+    <svg id="toast-icon" class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+    </svg>
+    <span id="toast-msg"></span>
+</div>
+
+<header class="border-b border-white/[0.05] bg-[#0D0D0D]/90 backdrop-blur-xl sticky top-0 z-20">
+    <div class="max-w-[1400px] mx-auto px-5 h-14 flex items-center justify-between gap-4">
+
+        <div class="flex items-center gap-3 min-w-0">
+            <div class="logo-mark">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+            <div class="min-w-0">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span class="text-[14px] font-bold text-white tracking-tight">RulesJson</span>
+                    <span class="tag-pill bg-laravel-500/10 text-laravel-400 border border-laravel-500/20">v1.0</span>
+                </div>
+                <p class="text-[11px] text-slate-600 truncate">Laravel Validation → JSON Body</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2 sm:gap-3">
+            <div class="hidden md:flex items-center gap-1.5 text-[11px] text-slate-600">
+                <span class="kbd">Ctrl</span><span class="text-slate-700 text-[10px]">+</span><span class="kbd">↵</span>
+                <span class="ml-1 text-slate-700">generate</span>
+            </div>
+            <div id="status-dot" class="status-dot"></div>
+            <button onclick="clearAll()" class="btn-ghost">
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                </svg>
+                <span class="hidden sm:inline">Clear</span>
+            </button>
+            <a href="https://github.com/EG-Mohamed/RulesJson" target="_blank" rel="noopener" class="btn-ghost">
+                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.942.359.31.678.921.678 1.856 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+                </svg>
+                <span class="hidden sm:inline">GitHub</span>
+            </a>
+        </div>
+
+    </div>
+</header>
+
+<main class="flex-1 max-w-[1400px] mx-auto w-full px-5 py-5 flex flex-col gap-4">
+
+    <div class="flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-1 bg-surface-700 border border-white/[0.05] rounded-lg p-1 overflow-x-auto">
+            <button class="tab-btn active" id="tab-pipe"   onclick="setTab('pipe')">Pipe String</button>
+            <button class="tab-btn"        id="tab-array"  onclick="setTab('array')">Array</button>
+            <button class="tab-btn"        id="tab-php"    onclick="setTab('php')">PHP Array</button>
+            <button class="tab-btn"        id="tab-object" onclick="setTab('object')">JS Object</button>
+        </div>
+        <div class="flex items-center gap-2">
+            <button onclick="loadExample()" class="btn-ghost">
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                Example
+            </button>
+            <button onclick="generate()" class="btn-primary" id="gen-btn">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                </svg>
+                Generate
+            </button>
+        </div>
+    </div>
+
+    <div id="error-alert"></div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4" style="height:calc(100vh - 272px);min-height:440px;">
+
+        <div class="panel flex flex-col overflow-hidden">
+            <div class="panel-header">
+                <div class="flex items-center gap-2.5">
+                    <div class="traffic-light flex gap-1.5">
+                        <span class="bg-[#ff5f57]"></span>
+                        <span class="bg-[#febc2e]"></span>
+                        <span class="bg-[#28c840]"></span>
+                    </div>
+                    <span class="text-[12px] font-medium text-slate-500">validation-rules</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span id="input-lines" class="text-[11px] text-slate-600 font-mono tabular-nums"></span>
+                    <button onclick="formatInput()" class="btn-ghost py-1 px-2.5 text-[11px]">Format</button>
+                </div>
+            </div>
+            <div class="flex-1 overflow-hidden">
+        <textarea
+                id="input-rules"
+                spellcheck="false"
+                autocomplete="off"
+                placeholder="Paste your Laravel $rules array here…"
+                oninput="onInput()"
+                onkeydown="handleKeydown(event)"
+        ></textarea>
+            </div>
+        </div>
+
+        <div class="panel flex flex-col overflow-hidden">
+            <div class="panel-header">
+                <div class="flex items-center gap-2.5">
+                    <div class="traffic-light flex gap-1.5">
+                        <span class="bg-[#444]"></span>
+                        <span class="bg-[#444]"></span>
+                        <span class="bg-[#444]"></span>
+                    </div>
+                    <span class="text-[12px] font-medium text-slate-500">output.json</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span id="output-size" class="text-[11px] text-slate-600 font-mono tabular-nums"></span>
+                    <button onclick="copyJSON()" id="copy-btn" class="btn-ghost py-1 px-2.5 text-[11px]">
+                        <svg class="w-3.5 h-3.5" id="copy-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                            <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+                        </svg>
+                        <span id="copy-label">Copy JSON</span>
+                    </button>
+                </div>
+            </div>
+            <div class="flex-1 overflow-hidden">
+                <pre id="output-pre"><span class="syntax-null">// Output will appear here…</span></pre>
+            </div>
+        </div>
+
+    </div>
+
+    <div id="stats-row" class="hidden flex-wrap gap-2 anim-in">
+        <span id="stat-fields" class="stat-chip text-slate-300"></span>
+        <span id="stat-nested" class="stat-chip text-purple-400"></span>
+        <span id="stat-arrays" class="stat-chip text-orange-400"></span>
+        <span id="stat-nulls"  class="stat-chip text-slate-500"></span>
+        <span id="stat-size"   class="stat-chip text-laravel-400"></span>
+    </div>
+
+</main>
+
+<footer class="border-t border-white/[0.04] py-4 mt-auto">
+    <div class="max-w-[1400px] mx-auto px-5 flex flex-wrap items-center justify-between gap-3">
+
+        <div class="flex items-center gap-2 flex-wrap">
+      <span class="text-[12px] text-slate-600">
+        &copy; <span id="copy-year"></span>
+        <a href="https://msaied.com/" target="_blank" rel="noopener" class="text-slate-500 hover:text-laravel-400 transition font-medium ml-1">Mohamed Said</a>
+      </span>
+            <span class="text-slate-700 text-[11px]">·</span>
+            <span class="text-[11px] text-slate-700">MIT License</span>
+            <span class="text-slate-700 text-[11px]">·</span>
+            <span class="text-[11px] text-slate-700">Open Source</span>
+            <span class="text-slate-700 text-[11px]">·</span>
+            <span class="text-[11px] text-slate-700">No data leaves your browser</span>
+        </div>
+
+        <div class="flex items-center gap-1.5 flex-wrap">
+            <span class="text-[11px] text-slate-700 mr-1">Supports:</span>
+            <span class="tag-pill bg-surface-600 text-slate-500 border border-white/[0.04]">pipe</span>
+            <span class="tag-pill bg-surface-600 text-slate-500 border border-white/[0.04]">array</span>
+            <span class="tag-pill bg-surface-600 text-slate-500 border border-white/[0.04]">PHP</span>
+            <span class="tag-pill bg-surface-600 text-slate-500 border border-white/[0.04]">dot-notation</span>
+            <span class="tag-pill bg-surface-600 text-slate-500 border border-white/[0.04]">nested objects</span>
+            <span class="tag-pill bg-surface-600 text-slate-500 border border-white/[0.04]">confirmed</span>
+            <span class="tag-pill bg-surface-600 text-slate-500 border border-white/[0.04]">enum / in:</span>
+        </div>
+
+    </div>
+</footer>
+
+<script>
+    document.getElementById('copy-year').textContent = new Date().getFullYear();
+
+    const EXAMPLES = {
+        pipe: `{
+    "name": "required|string|max:255",
+    "slug": "required|string|max:255|unique:posts",
+    "email": "required|email|unique:users",
+    "password": "required|string|min:8|confirmed",
+    "age": "required|integer|min:18|max:120",
+    "website": "nullable|url",
+    "role": "required|string|in:admin,editor,viewer,guest",
+    "status": "required|string|in:active,inactive,pending",
+    "is_active": "required|boolean",
+    "score": "nullable|numeric|min:0|max:100",
+    "avatar": "nullable|image|max:2048",
+    "document": "nullable|file|mimes:pdf,docx",
+    "birth_date": "nullable|date",
+    "uuid": "nullable|uuid",
+    "phone": "nullable|string|max:20",
+    "ip_address": "nullable|ip",
+    "color": "nullable|string|regex:/^#[0-9A-F]{6}$/i",
+    "tags": "required|array|min:1",
+    "tags.*": "string|max:50",
+    "address.street": "required|string|max:255",
+    "address.city": "required|string|max:100",
+    "address.zip": "required|string|max:10",
+    "address.country": "required|string|in:EG,US,GB,DE,FR",
+    "meta.title": "nullable|string|max:60",
+    "meta.description": "nullable|string|max:160"
+}`,
+        array: `{
+    "name": ["required", "string", "max:255"],
+    "email": ["required", "email", "unique:users"],
+    "password": ["required", "string", "min:8", "confirmed"],
+    "role": ["required", "string", "in:admin,editor,viewer"],
+    "is_active": ["required", "boolean"],
+    "tags": ["required", "array"],
+    "tags.*": ["string", "max:50"]
+}`,
+        php: `[
+    'name'            => 'required|string|max:255',
+    'email'           => 'required|email|unique:users',
+    'password'        => 'required|string|min:8|confirmed',
+    'role'            => 'required|string|in:admin,editor,viewer',
+    'is_active'       => 'required|boolean',
+    'tags'            => 'required|array',
+    'tags.*'          => 'string|max:50',
+    'address.city'    => 'required|string',
+    'address.country' => 'required|string|in:EG,US,GB',
+]`,
+        object: `{
+    name: "required|string",
+    email: "required|email",
+    amount: "required|numeric|min:0",
+    currency: "required|string|in:USD,EUR,EGP,GBP",
+    notes: "nullable|string|max:1000",
+    is_recurring: "required|boolean",
+    due_date: "required|date"
+}`,
+    };
+
+    const TYPE_DEFAULTS = {
+        boolean:  ()           => true,
+        numeric:  ()           => 1.0,
+        integer:  (rules)      => { const m = rules.find(r => r.startsWith('min:')); return m ? parseInt(m.split(':')[1]) : 1; },
+        email:    ()           => 'user@example.com',
+        url:      ()           => 'https://example.com',
+        date:     ()           => new Date().toISOString().split('T')[0],
+        uuid:     ()           => '550e8400-e29b-41d4-a716-446655440000',
+        ip:       ()           => '192.168.1.1',
+        image:    ()           => '<binary_image>',
+        file:     ()           => '<binary_file>',
+        string:   (rules, field) => {
+            const inR = rules.find(r => r.startsWith('in:'));
+            if (inR) return inR.split(':')[1].split(',')[0].trim();
+            const f = field.split('.').pop().toLowerCase();
+            if (f.includes('phone') || f.includes('mobile'))                    return '+1234567890';
+            if (f.includes('color') || f.includes('colour'))                    return '#FF2D20';
+            if (f.includes('slug'))                                              return 'example-slug';
+            if (f === 'title' || f.includes('_title'))                          return 'Example Title';
+            if (f.includes('description') || f.includes('content') || f === 'body') return 'Example description text.';
+            if (f === 'first_name' || f === 'firstname')                        return 'John';
+            if (f === 'last_name'  || f === 'lastname')                         return 'Doe';
+            if (f.includes('name'))                                              return 'John Doe';
+            if (f.includes('street') || f.includes('address'))                  return '123 Main Street';
+            if (f.includes('city'))                                              return 'Cairo';
+            if (f.includes('country'))                                           return 'EG';
+            if (f.includes('zip') || f.includes('postal'))                      return '12345';
+            if (f.includes('currency'))                                          return 'USD';
+            if (f.includes('token'))                                             return 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9';
+            if (f.includes('key') || f.includes('secret'))                      return 'sk_live_example_key';
+            if (f.includes('url') || f.includes('link'))                        return 'https://example.com';
+            if (f.includes('code'))                                              return 'CODE123';
+            if (f.includes('note') || f.includes('remark') || f.includes('comment')) return 'Some notes here.';
+            return `example_${f}`;
+        },
+    };
+
+    function inferValue(ruleList, field) {
+        const names = ruleList.map(r => r.split(':')[0].toLowerCase());
+
+        const hasExplicitType = names.some(n =>
+            ['boolean','integer','numeric','email','url','date','uuid','ip','image','file','string','alpha','alpha_num','alpha_dash','array'].includes(n)
+        );
+        if (names.includes('nullable') && !hasExplicitType) return null;
+
+        for (const type of ['boolean','integer','numeric','email','url','date','uuid','ip','image','file']) {
+            if (names.includes(type)) return TYPE_DEFAULTS[type](ruleList, field);
+        }
+        if (names.some(n => ['string','alpha','alpha_num','alpha_dash'].includes(n))) {
+            return TYPE_DEFAULTS.string(ruleList, field);
+        }
+        if (names.includes('array')) return '__ARRAY__';
+
+        return `example_${field.split('.').pop()}`;
+    }
+
+    function buildObject(flatRules) {
+        const result = {};
+        const confirmedFields = new Set();
+
+        for (const [field, rule] of Object.entries(flatRules)) {
+            if (field.endsWith('_confirmation') || field.includes('*')) continue;
+
+            const ruleList = Array.isArray(rule) ? rule.map(String) : String(rule).split('|');
+            const names    = ruleList.map(r => r.split(':')[0].toLowerCase());
+
+            let value;
+
+            if (names.includes('array')) {
+                const dotChildren  = Object.keys(flatRules).filter(k => k.startsWith(field + '.') && !k.includes('*'));
+                const starChildren = Object.keys(flatRules).filter(k => k === field + '.*');
+
+                if (dotChildren.length) {
+                    const childRules = {};
+                    for (const ck of dotChildren) childRules[ck.replace(field + '.', '')] = flatRules[ck];
+                    value = [buildObject(childRules)];
+                } else if (starChildren.length) {
+                    const sr   = Array.isArray(flatRules[starChildren[0]]) ? flatRules[starChildren[0]].map(String) : String(flatRules[starChildren[0]]).split('|');
+                    const item = inferValue(sr, field + '_item');
+                    value = [item];
+                } else {
+                    value = [];
+                }
+            } else {
+                value = inferValue(ruleList, field);
+            }
+
+            if (names.includes('confirmed')) confirmedFields.add(field);
+
+            const parts = field.split('.');
+            let ref = result;
+            for (let i = 0; i < parts.length - 1; i++) {
+                if (typeof ref[parts[i]] !== 'object' || ref[parts[i]] === null) ref[parts[i]] = {};
+                ref = ref[parts[i]];
+            }
+            ref[parts.at(-1)] = value;
+        }
+
+        for (const f of confirmedFields) {
+            const parts = f.split('.');
+            let ref = result;
+            for (let i = 0; i < parts.length - 1; i++) ref = ref[parts[i]] ?? {};
+            const confirmKey = parts.at(-1) + '_confirmation';
+            ref[confirmKey] = ref[parts.at(-1)];
+        }
+
+        return result;
+    }
+
+    function parseRules(raw) {
+        raw = raw.trim();
+        raw = raw.replace(/^(const|let|var)\s+\w+\s*=\s*/, '');
+        raw = raw.replace(/^\$\w+\s*=\s*/, '');
+        raw = raw.replace(/;$/, '').trim();
+
+        const phpReturn = raw.match(/return\s*(\[[\s\S]*?\])\s*;?\s*$/);
+        if (phpReturn) raw = phpReturn[1];
+
+        if (raw.startsWith('[')) {
+            raw = raw
+                .replace(/=>/g, ':')
+                .replace(/'/g, '"')
+                .replace(/,(\s*[\]\}])/g, '$1')
+                .replace(/^\[/, '{').replace(/\]$/, '}');
+            return JSON.parse(raw);
+        }
+
+        if (raw.startsWith('{')) {
+            raw = raw
+                .replace(/'/g, '"')
+                .replace(/,(\s*[\]\}])/g, '$1')
+                .replace(/([{,]\s*)(\w+)\s*:/g, '$1"$2":');
+            return JSON.parse(raw);
+        }
+
+        throw new Error('Wrap your rules in { } or [ ]. Pipe strings, arrays, and PHP arrays are all supported.');
+    }
+
+    function highlight(json) {
+        return json
+            .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+            .replace(/"((?:[^"\\]|\\.)*)"\s*:/g, '<span class="syntax-key">"$1"</span>:')
+            .replace(/:\s*"((?:[^"\\]|\\.)*)"/g, ': <span class="syntax-string">"$1"</span>')
+            .replace(/:\s*(-?\d+\.?\d*)/g, ': <span class="syntax-number">$1</span>')
+            .replace(/:\s*(true|false)/g, ': <span class="syntax-bool">$1</span>')
+            .replace(/:\s*(null)/g, ': <span class="syntax-null">$1</span>')
+            .replace(/([{}])/g, '<span class="syntax-brace">$1</span>')
+            .replace(/([[\]])/g, '<span class="syntax-bracket">$1</span>');
+    }
+
+    function computeStats(json, obj) {
+        const fields = Object.keys(obj).length;
+
+        // Run on raw JSON string — correct
+        const nulls = (json.match(/: null/g) || []).length;
+
+        // Only match [ that follows a colon = actual array values
+        const arrays = (json.match(/:\s*\[/g) || []).length;
+
+        // Recursive nested key counter
+        function countNestedKeys(o) {
+            let count = 0;
+            for (const v of Object.values(o)) {
+                if (v !== null && typeof v === 'object' && !Array.isArray(v)) {
+                    count += Object.keys(v).length;
+                    count += countNestedKeys(v);
+                }
+            }
+            return count;
+        }
+        const nested = countNestedKeys(obj);
+
+        const bytes = new Blob([json]).size;
+        const size  = bytes < 1024 ? `${bytes} B` : `${(bytes / 1024).toFixed(1)} KB`;
+
+        return { fields, nulls, arrays, nested, size };
+    }
+
+    let lastJSON = '';
+    let debounceTimer = null;
+    let currentTab = 'pipe';
+
+    function setTab(t) {
+        currentTab = t;
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('tab-' + t).classList.add('active');
+    }
+
+    function onInput() {
+        const lines = (document.getElementById('input-rules').value.match(/\n/g) || []).length + 1;
+        document.getElementById('input-lines').textContent = `${lines} ln`;
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(generate, 420);
+    }
+
+    function handleKeydown(e) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); generate(); return; }
+        if (e.key === 'Tab') {
+            e.preventDefault();
+            const ta = e.target, s = ta.selectionStart, end = ta.selectionEnd;
+            ta.value = ta.value.substring(0, s) + '    ' + ta.value.substring(end);
+            ta.selectionStart = ta.selectionEnd = s + 4;
+        }
+    }
+
+    function generate() {
+        const raw = document.getElementById('input-rules').value.trim();
+        hideError();
+        if (!raw) { setStatus('idle'); return; }
+
+        try {
+            const rules = parseRules(raw);
+            const obj   = buildObject(rules);
+            lastJSON    = JSON.stringify(obj, null, 2);
+
+            const pre = document.getElementById('output-pre');
+            pre.innerHTML = highlight(lastJSON);
+
+            const s = computeStats(lastJSON, obj);
+            document.getElementById('output-size').textContent = s.size;
+
+            const icon = (path) => `<svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="${path}"/></svg>`;
+
+            document.getElementById('stat-fields').innerHTML = icon('M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z') + `<span>${s.fields} root fields</span>`;
+            document.getElementById('stat-nested').innerHTML = icon('M4 6h16M4 10h16M4 14h16M4 18h7') + `<span>${s.nested} nested keys</span>`;
+            document.getElementById('stat-arrays').innerHTML = icon('M4 6h16M4 12h16M4 18h16') + `<span>${s.arrays} arrays</span>`;
+            document.getElementById('stat-nulls').innerHTML  = icon('M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636') + `<span>${s.nulls} nullable</span>`;
+            document.getElementById('stat-size').innerHTML   = icon('M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z') + `<span>${s.size}</span>`;
+
+            const row = document.getElementById('stats-row');
+            row.style.display = 'flex';
+            row.classList.add('anim-in');
+
+            setStatus('ok');
+        } catch (e) {
+            showError(e.message);
+            setStatus('err');
+        }
+    }
+
+    function copyJSON() {
+        if (!lastJSON) {
+            showToast('Nothing to copy — generate first.', false);
+            return;
+        }
+
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(lastJSON)
+                .then(() => onCopySuccess())
+                .catch(() => fallbackCopy());
+        } else {
+            fallbackCopy();
+        }
+    }
+
+    function fallbackCopy() {
+        const ta = document.createElement('textarea');
+        ta.value = lastJSON;
+        ta.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0;';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        try {
+            document.execCommand('copy');
+            onCopySuccess();
+        } catch {
+            showToast('Copy failed — please select and copy manually.', false);
+        }
+        document.body.removeChild(ta);
+    }
+
+    function onCopySuccess() {
+        const btn   = document.getElementById('copy-btn');
+        const label = document.getElementById('copy-label');
+        const icon  = document.getElementById('copy-icon');
+
+        btn.classList.add('copy-success');
+        label.textContent = 'Copied!';
+        icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>';
+
+        showToast('JSON copied to clipboard', true);
+
+        setTimeout(() => {
+            btn.classList.remove('copy-success');
+            label.textContent = 'Copy JSON';
+            icon.innerHTML = '<rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>';
+        }, 2000);
+    }
+
+    function loadExample() {
+        document.getElementById('input-rules').value = EXAMPLES[currentTab] || EXAMPLES.pipe;
+        onInput();
+        generate();
+    }
+
+    function formatInput() {
+        const ta = document.getElementById('input-rules');
+        try {
+            const parsed = parseRules(ta.value);
+            ta.value = JSON.stringify(parsed, null, 4)
+                .replace(/"([^"]+)":/g, '"$1":');
+            onInput();
+            showToast('Input formatted', true);
+        } catch {
+            showError('Cannot format — fix syntax errors first.');
+        }
+    }
+
+    function clearAll() {
+        document.getElementById('input-rules').value = '';
+        document.getElementById('output-pre').innerHTML = '<span class="syntax-null">// Output will appear here…</span>';
+        document.getElementById('output-size').textContent = '';
+        document.getElementById('input-lines').textContent = '';
+        document.getElementById('stats-row').style.display = 'none';
+        hideError();
+        setStatus('idle');
+        lastJSON = '';
+    }
+
+    function setStatus(s) {
+        const dot = document.getElementById('status-dot');
+        dot.className = 'status-dot';
+        if (s === 'ok')  dot.classList.add('ok');
+        if (s === 'err') dot.classList.add('err');
+    }
+
+    function showError(msg) {
+        const el = document.getElementById('error-alert');
+        el.style.display = 'block';
+        el.innerHTML = `<strong>Parse Error:</strong> ${escHtml(msg)}`;
+    }
+
+    function hideError() {
+        document.getElementById('error-alert').style.display = 'none';
+    }
+
+    function escHtml(s) {
+        return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    let toastTimer;
+    function showToast(msg, ok = true) {
+        const t    = document.getElementById('toast');
+        const icon = document.getElementById('toast-icon');
+        document.getElementById('toast-msg').textContent = msg;
+        icon.className = `w-4 h-4 flex-shrink-0 ${ok ? 'text-green-400' : 'text-red-400'}`;
+        icon.innerHTML = ok
+            ? '<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>'
+            : '<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>';
+        t.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
+    }
+
+    document.addEventListener('DOMContentLoaded', loadExample);
+</script>
+</body>
+</html>
